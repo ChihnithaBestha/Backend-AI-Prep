@@ -1,0 +1,236 @@
+Login / auth 
+
+Hashing - password 
+
+________________________________________________
+Hashing algorithms
+
+Popular hashing algorithms
+
+(Not all are safe for passwords)
+
+❌ MD5 (insecure)
+❌ SHA-1 (insecure)
+✅ bcrypt (recommended)
+✅ argon2 (very strong)
+✅ PBKDF2 (also used)
+
+________________________________________________
+
+
+password + salt → hash
+salt- random value added before hashing 
+
+ without the salt ->  YES — same password → same hash every time hash("password")
+
+with salt - bycrypt value 
+bcrypt.hashpwd("password",salt)
+$2b$12$K9u7...abc123hashedvalue  -> contains Algorithm ($2b), cost factor (12), salt($K9u7),hash 
+
+During login
+
+When user types password again:
+
+System takes stored hash
+Extracts the salt from it
+Hashes the entered password using same salt
+Compares result
+
+Encryption = reversible (you can decrypt)
+Hashing = irreversible (you can’t get original back)
+
+
+________________________________________________
+
+"FAST" = BAD -> For passwords, you actually want : Slow hashing as Attackers try millions of guesses/sec -> Slower hash = harder to crack
+
+
+❌ MD5 Message Digest (insecure) -> Output: 128-bit hash , fast - easy brute force , rainbow table attacks, collision exists (sme psswd- sme hash)
+❌ SHA-1 Secure Hash Algorithm (insecure) ->Output: 160-bit hash, Still too fast → brute-force , Collision attacks proven (e.g., SHAttered attack)
+
+✅ bcrypt (recommended)  - slow + secure ->  has salt, modify cost factor(work factor) ,use blow fish cipher internally ,adaptive (inc. diff.)
+bcrypt.hashpw(password,bcrypt.gensalt(rounds=12))  rounds=12 → controls how slow it is
+Limiy- psswrd length (72 bytes),Not memory-hard (less resistant to GPU attacks than argon2)
+
+✅ argon2 (very strong) - Memory-hard (uses RAM + CPU) , configurable - memory,time cost & parallelism , built in salt
+Adv- ✔ Very hard for GPU attacks, Slows down attackers massively, Highly configurable
+```
+from argon2 import PasswordHasher
+ph = PasswordHasher()
+hash = ph.hash("password123")
+ph.verify(hash, "password123")
+```
+
+Limits - More complex to configure
+
+✅ PBKDF2 Password Based Key Function Derivation (also used) -> repeated hashing (usses iteration eg 100000 times),Works with SHA-256 typically,has built in salt
+```
+import hashlib
+hashlib.pbkdf2_hac(
+      'SHA256',
+      b'password',
+      b'salt',
+      10000
+)
+```
+limits - Not memory-hard, Less secure than argon2 for modern attacks
+
+Django → uses PBKDF2 by default (can switch to Argon2)
+FastAPI → commonly uses bcrypt/argon2 via passlib
+
+
+________________________________________________
+
+
+rainbow table attack : 
+huge precomputed list of password - hash 
+eg: 
+123456  → e10adc3949ba59abbe56e057f20f883e
+password → 5f4dcc3b5aa765d61d8327deb882cf99
+admin    → 21232f297a57a5a743894a0e4a801fc3
+
+Rainbow tables exploit unsalted, fast hashes
+
+
+Collision Attacks(shattered attack)|
+- Different inputs -> same hash 
+file1 → hash123
+file2 → hash123   ← different file, same hash 
+If hashes are used for:File verification, Digital signatures, Security checks
+👉 An attacker can replace a file without detection
+
+Blow fish Cipher(Bcrypt)
+encryption algorithm 
+
+Blowfish basics - Symmetric key algorithm,Uses same key for encrypt/decrypt, fast 
+👉 EksBlowfish (expensive key setup) - It deliberately slows down hashing, Uses multiple rounds
+
+________________________________________________
+
+
+passlib[bcrypt]
+Passlib is an open-source Python library that provides a unified interface for password hashing and verification. It supports a wide range of secure hashing algorithms
+
+python-jose
+Used to create and verify JWT tokens (JSON Web Tokens)
+After login, instead of sending password every time: gives tokens
+user logs in → gets token → uses token for future requests
+This Create tokens, Verify tokens, Decode payload (user info)
+
+from jose import jwt
+sectre_key = "abc123"
+Algorithm = "SHA256"
+#create token 
+token  =jwt.encode({"user: "chihnitha"},secret_key , algorithm=Algorithm})
+#decode
+data = jwt.decode( token,secret_key,algorithm=[Algorithm])
+
+In a real system:
+
+1️⃣ Signup
+Hash password using passlib
+Store in DB
+2️⃣ Login
+Verify password using passlib
+If correct → create JWT using python-jose
+3️⃣ Future requests
+Client sends JWT
+Server verifies using python-jose
+
+User → Signup → hash password → store
+
+User → Login → verify password → generate JWT
+
+User → API request → send JWT → verify → allow access
+________________________________________________
+
+What is CryptContext?
+
+👉 It’s a configuration object that:
+
+Knows which hashing algorithm to use
+Knows how to hash
+Knows how to verify
+
+Think of it as:
+👉 “password security manager”
+
+________________________________________________
+JWt Token has:
+HEADER.PAYLOAD.SIGNATURE
+User logs in → password verified → create_access_token()
+User sends token → server verifies → allows access
+without exp 👉 Token works forever ❌ (security risk)
+
+________________________________________________
+
+ Dependency Injection :
+is a design pattern where required components (like database sessions or authentication data) are provided to a function instead of being created inside it.
+Step 1: Create dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+Step 2: Inject it
+from fastapi import Depends
+
+@app.get("/users")
+def get_users(db = Depends(get_db)):
+    return db.query(User).all()
+
+👉 “Sensitive data like passwords should be sent in the request body instead of query parameters because query parameters are exposed in URLs, logs, and browser history, while request bodies provide a more secure and structured way to transmit data.”
+def signup(username: str, password: str):
+
+FastAPI treats these as query parameters by default 👇
+
+POST /signup?username=abc&password=123
+
+
+
+token = create_access_token({"sub": user.username})
+"sub" means:
+Subject (standard JWT field)
+Represents the user identity
+
+________________________________________________
+
+protected routes + authentication
+
+Login → get JWT token
+→ Send token in requests
+→ FastAPI extracts token
+→ Your code verifies it
+→ Access granted
+
+
+OAuth2PasswordBearer 👉 This is a helper class for extracting tokens from requests headers
+
+
+| Purpose             | Library    | Algorithm |
+| ------------------- | ---------- | --------- |
+| 🔐 Password Hashing | passlib    | bcrypt    |
+| 🎟️ JWT Token       | jose (JWT) | HS256     |
+
+
+
+____________________________________________________________________________________________________
+
+"I implemented JWT-based authentication in FastAPI. Passwords are securely hashed using bcrypt via passlib, and upon successful login, a JWT token is generated using python-jose. Protected endpoints validate the token before granting access, ensuring stateless and secure authentication."
+
+
+AUTHENTICATION & LOGIN
+✅ Recommended: JWT (JSON Web Tokens) + OAuth 2.0 + NextAuth / Auth.js
+
+
+User logs in → backend verifies → issues a JWT token
+Every request the user makes carries this token
+Backend reads the token — no database lookup needed for every click
+
+OptionWhy not?Sessions (cookie-based)Requires storing session on server — doesn't scale horizontallyFirebase AuthEasy but locks you into Google ecosystem; costs money at scaleAuth0Excellent but expensive (₹1–5L/year at scale)ClerkModern and developer-friendly but again, vendor lock-in and costSupabase AuthGood option if using Supabase as your database too
+____________________________________________________________________________________________________
+
+For social login (Google, LinkedIn): Use OAuth 2.0 — lets users click "Login with Google" instead of creating a new password
+Library recommendation: Auth.js (formerly NextAuth) or Passport.js
