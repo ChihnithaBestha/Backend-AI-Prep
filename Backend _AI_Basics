@@ -1,0 +1,193 @@
+AI front + backend 
+
+skills 
+
+Devops 
+
+-git 
+
++ Version control,branches
++ storage, common sharepoint for coding 
++regression (A base, BCD built on it when A changes )
++unit testing
++integration testing 
+
+
+-CI/CD pipelines 
+> SonarKube
+
+
+-Docker
+Docker is a platform that allows you to package an application and its dependencies into a container so it can run consistently on any system.
+
+👉 Docker puts everything into a container (a box 📦):
+	•	Code
+	•	Libraries
+	•	Dependencies
+	•	Runtime
+✔ So it runs the same everywhere
+Why Use Docker?
+🔹 Consistency
+	•	Works same on dev, test, prod
+
+🔹 Portability
+	•	Run anywhere (cloud, local, server)
+
+🔹 Isolation
+	•	No conflicts between projects
+
+🔹 Easy Deployment
+	•	Faster CI/CD pipelines ﻿ ﻿ ﻿ ﻿
+
+
+
+
+-kubernetes
+
+Docker → Creates containers (your app)
+Kubernetes → Manages those containers
+💡 What Kubernetes Does
+🔹 1. Auto Scaling
+👉 More users → creates more containers 👉 Less users → reduces containers
+
+🔹 2. Self-Healing
+👉 If a container crashes ➡️ Kubernetes automatically restarts it
+
+🔹 3. Load Balancing
+👉 Distributes traffic across containers ➡️ No overload
+
+🔹 4. Deployment Management
+👉 Update app without downtime
+
+💻 Example (Your Django Project)
+Without Kubernetes:
+	•	You manually run containers
+	•	Handle scaling yourself
+With Kubernetes:
+	•	It automatically:
+	◦	Runs multiple Django containers
+	◦	Scales based on traffic
+	◦	Restarts failed ones
+
+🧱 Basic Components (Simple Terms)
+🔹 Pod
+Smallest unit (1 or more containers)
+
+🔹 Node
+A machine (server)
+
+🔹 Cluster
+Group of nodes
+
+🔹 Deployment
+Manages pods (scaling, updates)
+
+🔄 Real Flow
+	1	You deploy your app
+	2	Kubernetes creates containers (pods)
+	3	Users send requests
+	4	Kubernetes balances traffic
+	5	If something fails → it fixes it ﻿ ﻿ ﻿ ﻿ ﻿ ﻿
+
+
+
+
+-Jenkins, 
+Jenkins is an open-source automation tool used for implementing CI/CD pipelines. It automates building, testing, and deploying applications, helping teams deliver code faster and more reliably.
+
+Jenkins pipeline:
+	1	Pull latest code
+	2	Build Docker image
+	3	Run tests
+	4	Deploy to server / Kubernetes
+
+gitlab CI/CD 
+
+CI/CD Pipeline defines:
+	1	Pull code
+	2	Install dependencies
+	3	Run tests
+	4	Build app
+	5	Deploy
+Jenkins does:
+	•	Watches repo
+	•	Triggers pipeline
+	•	Executes each step
+	•	Reports success/failure
+
+-Unit testing 
+
+
+
+Python 
+-OOPS  (modularity[collaboration,diff files,utility files],Reusability,Maintainability
+ 
++ class (categorize objects)
++Object
+	•	Characters  ﻿(colour) ﻿,data
+	•	Method (speed) 
+	•	
+	•	+ Encapsulation (Data Hiding)
+	•	+ Inheritance (Reuse Code)
+	•	+ Polymorphism (Same method, different behavior)
+	•	- Dynamic /Runtime polymorphism means the same method behaves differently depending on the object, and the decision is made when the program is running. ﻿ ﻿EG - remote control button 
+	•	+ Abstraction (Hide Complexity) [API functions. Hidden] ﻿ ﻿
+	•	>>Security [data leaks, hacking],Controlled Access[ /get-metrics instead of direct DB access],Prevent Misuse[wrong inputs,API guard],Flexibility to Change Backend ﻿ ﻿
+	•	>> Data Abstraction Data abstraction means hiding internal data details and exposing only necessary operations to interact with that data. 👉 You don’t access data directly (Hide DB fields) 👉 You use methods to interact with it ﻿ ﻿ >>Control Abstraction -Control abstraction means hiding complex implementation logic and exposing only high-level operations. API endpoint:             
+
+
+
+
+In your Django/backend projects:
+	•	Models = Classes
+	•	APIs = Objects interacting
+	•	Services = Encapsulated logic
+	•	Reusable components = Inheritance
+
+
+OOP Concepts Mapped to Your Project
+OOP Concept
+Where You Used It
+Encapsulation
+MetricsProcessor hides logic
+Inheritance
+BaseLogFetcher → OCI/LBaaS
+Polymorphism
+Different detectors / fetchers
+Abstraction
+Base classes define structure
+Composition
+MetricsService combines components
+
+
+If you explain this, say:
+“I designed the system using OOP principles where log fetchers and anomaly detectors follow abstraction and polymorphism, allowing plug-and-play extensibility. The service layer uses composition to orchestrate processing pipelines.”
+
+
+-Fast API
+
+
+
+-Decoraters
+-yield 
+-Generators
+-SSC
+
+JS
+-nodejs 
+-reactjs (basics)
+
+DSA 
+DB 
+System design 
+(Low level , High Level)
+
+Openspec 
+
+
+backend terminology 
+	•	Authorization
+	•	Authentication
+	•	Role based access control
+	•	SonarKube
+	•	
