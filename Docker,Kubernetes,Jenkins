@@ -1,0 +1,27 @@
+Docker Set up 
+Think of Rancher Desktop like a machine that runs small boxes (containers).
+
+Your FastAPI app = 📦 one box
+Rancher = 🏗️ runs that box safely anywhere
+
+
+craeete a image 
+first cfeate a requirements.txt file 
+then a docker file 
+
+to build the image 
+docker build -t fastapiapp .
+
+
+What is a Docker Image?
+
+👉 Image = frozen snapshot of your app
+
+It contains:
+
+Python
+Your code
+Installed libraries
+Startup command
+
+👉 It is read-only blueprint
