@@ -1,0 +1,133 @@
+👉 Prisma is an ORM (Object Relational Mapper)
+Write code → Prisma converts it → SQL queries → Database
+Without prisma: 
+SELECT * FROM users WHERE username = 'ch';
+with prisma:
+prisma.user.findUnique({
+  where: { username: "ch" }
+})
+
+What Prisma does: 
+Connects to database
+Generates queries
+Handles migrations
+Type-safe (in TypeScript)
+
+Majorly used with node.js,ts
+similar - SQLAlchemy 
+
+____________________________________________________________________________________________________
+
+PostgresSql 
+
+It is a database in which data is stored in tables format 
+Users table:
+id | username | password
+
+Postgres uses sql lang.
+Eg:
+INSERT INTO Users(username,password):
+Values("chihnitha","hash_passwrd")
+
+PostgreSQL → structured, relational, strict
+It has tables(rows,column), Relationships (Users → Orders → Payments)
+
+
+
+Use PostgreSQL when:
+
+✔ Banking systems
+✔ E-commerce (orders, payments)
+✔ Authentication systems (like yours)
+✔ Analytics & reporting
+✔ Complex joins needed
+
+👉 Example:
+
+Amazon
+Uber (core systems)
+
+____________________________________________________________________________________________________
+MongoDB (NoSQL DB)
+
+It is a database in which data is stored in JSON format 
+JSon:
+{
+  "username": "ch",
+  "password": "hashed",
+  "orders": [
+    {"item": "apple", "price": 10}
+  ]
+}
+
+- no joins like sql 
+
+MongoDB → flexible, document-based, dynamic
+
+
+🍃 Use MongoDB when:
+
+✔ Rapid prototyping
+✔ JSON-heavy apps
+✔ Logs / analytics
+✔ Content management
+✔ Real-time apps
+
+👉 Example:
+
+Chat apps
+IoT data
+
+
+can use both :
+PostgreSQL → core data
+MongoDB → logs / flexible data
+
+____________________________________________________________________________________________________
+⚔️ PostgreSQL vs MongoDB (Deep Comparison)
+
+🧱 1. Data Structure
+| Feature   | PostgreSQL | MongoDB  |
+| --------- | ---------- | -------- |
+| Type      | Relational | Document |
+| Structure | Tables     | JSON     |
+| Schema    | Fixed      | Flexible |
+
+
+🔗 2. Relationships
+| Feature           | PostgreSQL | MongoDB   |
+| ----------------- | ---------- | --------- |
+| Joins             | ✅ Yes      | ❌ Limited |
+| Foreign keys      | ✅ Yes      | ❌ No      |
+| Complex relations | ✅ Strong   | ❌ Weak    |
+
+
+3. Performance
+| Case                | Winner     |
+| ------------------- | ---------- |
+| Complex queries     | PostgreSQL |
+| Simple reads/writes | MongoDB    |
+| Transactions        | PostgreSQL |
+
+🔐 4. Data Integrity
+| Feature     | PostgreSQL | MongoDB    |
+| ----------- | ---------- | ---------- |
+| ACID        | ✅ Strong   | ⚠️ Partial |
+| Constraints | ✅ Yes      | ❌ Limited  |
+
+
+query poewer 
+
+| Feature      | PostgreSQL | MongoDB |
+| ------------ | ---------- | ------- |
+| SQL          | ✅ Advanced | ❌ No    |
+| Aggregations | ✅ Powerful | ✅ Good  |
+
+
+
+
+MySQLPostgreSQL  - is strictly more powerful (better JSON support, more features)
+MongoDB (NoSQL)Great for unstructured data, but orders/products are very structured — relations matter
+SQLiteOnly for tiny apps, single-user; can't handle concurrent users
+Oracle DBExpensive licensing, enterprise overkill
+Microsoft SQL ServerWindows-centric, expensive
