@@ -1,0 +1,607 @@
+System Design 
+
+
+Slack 
+
+Scalable Chat Application (WhatsApp/Slack)
+Core challenge: Real-time message delivery at scale with persistence and ordering guarantees.
+Key components:
+
+WebSocket servers — each client maintains a persistent WebSocket connection. These are stateful, so you need a way to route messages to the right server.
+Message broker (Kafka) — all sent messages go into Kafka topics (partitioned by conversation/channel ID). This decouples senders from receivers and provides durability.
+Presence service — tracks user_id → server_id mapping in Redis. When user A sends to user B, the system looks up which WebSocket server B is on and routes the push there.
+Message storage — Cassandra is ideal (append-heavy writes, time-ordered reads by conversation). Use (conversation_id, message_timestamp) as composite key.
+Media service — images/videos go to S3, chat stores only the URL.
+Notification service — if recipient is offline, push via FCM/APNs.
+
+Delivery guarantees: Use client-side message IDs (UUIDs) and server-side ACKs. Client retries until it gets an ACK. Server deduplicates by message ID.
+Scaling: WebSocket servers are horizontally scalable behind a L4 load balancer (sticky sessions aren't needed — Redis presence handles routing). Kafka partitioning ensures ordering within a conversation.
+Group chats: Fan-out on write (small groups) vs fan-out on read (large Slack channels with 10k+ members).
+
+
+A **WebSocket connection** is like keeping a phone call open between the browser and server.
+
+Instead of:
+
+* Browser asks → server replies → connection closes (HTTP)
+
+WebSocket does:
+
+* Browser connects once
+* Connection stays open
+* Both sides can send messages anytime instantly
+
+---
+
+## Why WebSocket servers become “stateful”
+
+Imagine you have:
+
+* User A connected to Server 1
+* User B connected to Server 2
+
+Each server keeps track of:
+
+* which users are connected
+* their socket connection
+* their online/offline status
+
+That means the server stores **live connection state in memory**.
+
+Example:
+
+```text
+Server 1 memory:
+  user123 -> socketABC
+
+Server 2 memory:
+  user456 -> socketXYZ
+```
+
+This is called **stateful** because:
+
+* the server “remembers” connected clients
+
+---
+
+# The Problem in Scaling
+
+Suppose User A sends a message to User B.
+
+But:
+
+* User A is connected to Server 1
+* User B is connected to Server 2
+
+Now Server 1 does NOT know where User B is connected.
+
+So how does the message reach the correct server?
+
+---
+
+# “Route messages to the right server”
+
+You need a system that helps servers communicate.
+
+Usually done using:
+
+* Redis Pub/Sub
+* Kafka
+* NATS
+* Message broker
+
+---
+
+## Simple Flow
+
+```text
+Client A
+   |
+Server 1
+   |
+ Redis Pub/Sub
+   |
+Server 2
+   |
+Client B
+```
+
+---
+
+## Real Example
+
+Suppose Slack has 1 million users.
+
+They cannot use just one WebSocket server.
+
+So they use many servers:
+
+```text
+WS Server 1
+WS Server 2
+WS Server 3
+WS Server 4
+```
+
+When a user connects:
+
+* Load balancer sends them to one server
+* That server stores their active socket
+
+If another user wants to send them a message:
+
+* Backend checks which server has that user
+* Message is routed there
+
+---
+
+# Simple Analogy
+
+Think of it like hotel reception desks.
+
+* Each desk manages certain guests
+* Guest info is stored at that desk
+* If someone wants to contact a guest:
+
+  * hotel system finds which desk manages them
+
+The desks are the WebSocket servers.
+
+---
+
+# Why HTTP is Easier
+
+HTTP is usually **stateless**.
+
+Every request is independent:
+
+```text
+Request comes in
+Server responds
+Done
+```
+
+Any server can handle it.
+
+But WebSocket connections stay alive for hours, so:
+
+* server memory matters
+* sticky routing matters
+* connection tracking matters
+
+---
+
+# Common Architecture
+
+```text
+Users
+  ↓
+Load Balancer
+  ↓
+WebSocket Servers
+  ↓
+Redis / Kafka
+  ↓
+Backend Services
+```
+
+---
+
+# Important Concepts
+
+| Concept               | Meaning                         |
+| --------------------- | ------------------------------- |
+| Persistent connection | Connection stays open           |
+| Stateful              | Server remembers clients        |
+| Sticky sessions       | Same client goes to same server |
+| Pub/Sub               | Servers communicate messages    |
+| Horizontal scaling    | Adding more WS servers          |
+
+---
+
+# In your “online/offline status” idea
+
+If building Slack-like presence:
+
+Each WebSocket server keeps:
+
+```python
+connected_users = {
+   "user123": socket1,
+   "user456": socket2
+}
+```
+
+When internet disconnects:
+
+* socket closes
+* server marks user offline instantly
+
+That’s why WebSockets are great for:
+
+* chat
+* online status
+* live dashboards
+* multiplayer games
+* notifications
+
+
+
+Kafka
+
+Think of a **message broker like Kafka** as a giant delivery system between servers.
+
+In a chat app like Slack, millions of users are connected to many WebSocket servers.
+
+---
+
+# The Main Problem
+
+Suppose:
+
+```text id="wmpq2v"
+Alice -> connected to WS Server 1
+Bob   -> connected to WS Server 9
+```
+
+Now Alice sends:
+
+```text id="zh9vkl"
+"Hello Bob"
+```
+
+Question:
+
+👉 How does Server 1 know Bob is on Server 9?
+
+This is where Kafka/message brokers help.
+
+---
+
+# What Kafka Does
+
+Kafka acts like a **central event pipeline**.
+
+Instead of servers directly talking to each other:
+
+```text id="5s2pvw"
+Server 1 → Kafka → Server 9
+```
+
+---
+
+# Simple Slack Architecture
+
+```text id="j7rywa"
+Users
+   ↓
+Load Balancer
+   ↓
+WebSocket Servers
+   ↓
+Kafka
+   ↓
+Other WebSocket Servers
+```
+
+---
+
+# Step-by-Step Message Flow
+
+## Step 1 — User sends message
+
+## Step 2 — Server publishes event to Kafka
+
+Server 1 sends event:
+
+```json
+{
+  "to": "bob",
+  "message": "Hi Bob"
+}
+```
+
+to Kafka.
+
+This is called:
+
+### Producer
+
+Because Server 1 is producing events.
+
+---
+
+# Kafka Stores Streams of Events
+
+Kafka keeps ordered streams like:
+
+```text id="9pmrlo"
+Topic: chat-messages
+
+1. Alice -> Bob
+2. Bob -> Alice
+3. John -> Team
+```
+
+These are called:
+
+* Topics
+* Event streams
+
+---
+
+# Step 3 — Other servers listen to Kafka
+
+All WebSocket servers subscribe to Kafka.
+
+This is called:
+
+### Consumer
+
+Server 9 receives:
+
+```text id="i0gq5r"
+Message for Bob
+```
+
+---
+
+# Step 4 — Correct server delivers message
+
+Server 9 already has Bob’s live WebSocket connection:
+
+```python id="swv8cr"
+connected_users = {
+   "bob": socket123
+}
+```
+
+So it sends message instantly to Bob.
+
+---
+
+# Why Not Direct Server-to-Server Communication?
+
+Imagine:
+
+* 500 WebSocket servers
+
+Without Kafka:
+
+* every server must talk to every other server
+
+This becomes messy:
+
+```text id="zv25dy"
+S1 ↔ S2
+S1 ↔ S3
+S1 ↔ S4
+...
+```
+
+Huge complexity.
+
+---
+
+# Kafka Makes It Centralized
+
+Instead:
+
+```text id="64dqzu"
+All servers ↔ Kafka
+```
+
+Much cleaner and scalable.
+
+---
+
+# Real Things Kafka Helps Slack-like Apps With
+
+## 1. Chat messages
+
+```text id="q2zv46"
+User A → User B
+```
+
+---
+
+## 2. Online/offline events
+
+```text id="sn1pt2"
+"Bob came online"
+```
+
+All services can know instantly.
+
+---
+
+## 3. Notifications
+
+```text id="6c84xy"
+"New mention"
+```
+
+---
+
+## 4. Typing indicators
+
+```text id="c9c52y"
+"Alice is typing..."
+```
+
+---
+
+## 5. Analytics
+
+Kafka can also feed:
+
+* dashboards
+* logging systems
+* AI pipelines
+* monitoring systems
+
+---
+
+# Why Kafka Is Powerful
+
+## Very Fast
+
+Can handle:
+
+* millions of messages/sec
+
+---
+
+
+
+
+---
+
+# Simple Technical Terms
+
+| Term      | Meaning                     |
+| --------- | --------------------------- |
+| Producer  | Sends events to Kafka       |
+| Consumer  | Reads events from Kafka     |
+| Topic     | Category/stream of messages |
+| Broker    | Kafka server                |
+| Partition | Split topic for scalability |
+
+
+```
+
+This is one of the core patterns used in:
+
+* Slack
+* Discord
+* WhatsApp
+* Uber
+* trading systems
+* live dashboards
+* multiplayer games
+
+
+Redis Stores Mapping
+
+"Which WebSocket server is this user connected to?"
+Presence Service
+
+Because it tracks:
+
+who is online
+where they are connected
+
+
+Redis stores:
+
+user_id → server_id
+
+Example:
+
+alice → ws-server-1
+bob   → ws-server-3
+john  → ws-server-2
+
+
+Why Redis?
+
+Because Redis is:
+
+extremely fast (memory-based)
+shared across all servers
+perfect for temporary live data
+
+Presence data changes constantly:
+
+users connect
+disconnect
+reconnect
+switch devices
+
+Redis handles this efficiently.
+
+Multiple Devices Problem
+
+Bob may connect from:
+
+mobile
+laptop
+tablet
+
+Redis may store:
+
+bob → [server3, server7]
+
+
+Redis Pub/Sub
+"Bob came online"
+
+All servers may care.
+
+Broadcast event.
+
+Internal RPC
+"Server 3, send this exact message to Bob"
+
+Direct targeted command.
+
+
+| Use Case                 | Best Option   |
+| ------------------------ | ------------- |
+| Online status            | Redis Pub/Sub |
+| Typing indicators        | Pub/Sub       |
+| Guaranteed chat delivery | Kafka         |
+| Direct targeted action   | RPC           |
+| Analytics events         | Kafka         |
+| Service-to-service calls | gRPC/RPC      |
+
+
+Use Apache Cassandra because chat systems mostly keep adding new messages, and users usually read messages in time order.
+
+Append-heavy writes
+
+Meaning:
+
+new data keeps getting appended
+old messages rarely change
+
+Chat apps are mostly:
+
+continuous inserts
+sequential reads
+
+conversation_id:  Groups all messages together.
+message_timestamp: Inside that conversation, messages are sorted by time
+
+| Concept             | Meaning                           |
+| ------------------- | --------------------------------- |
+| Append-heavy writes | Mostly adding new messages        |
+| Time-ordered reads  | Read chats chronologically        |
+| conversation_id     | Groups messages by chat           |
+| message_timestamp   | Sorts messages by time            |
+| Composite key       | Combination for efficient storage |
+| Cassandra           | Distributed high-write NoSQL DB   |
+
+
+Notification 
+Push Notifications 
+If the user is not currently connected to the app via WebSocket, send a mobile push notification instead.
+
+Android → FCM (Firebase Cloud Messaging) by google 
+iPhone → APNs (Apple Push Notification Service) 
+
+Is Bob online?
+   YES → WebSocket
+   NO  → Push Notification
+
+For message sending
+
+
+| Concept           | Purpose                          |
+| ----------------- | -------------------------------- |
+| Message ID (UUID) | Unique identity for each message |
+| ACK               | Server confirmation              |
+| Retry             | Client resends if no ACK         |
+| Deduplication     | Server avoids duplicates         |
+
+
