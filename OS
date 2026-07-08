@@ -1,1 +1,134 @@
 
+RAM 
+ROM 
+RAM (Random Access Memory) Volatile memory- normal applications 
+ROM (REad Only Memory) Non - volatile - applications which have installed can only be written 
+VRAM (Virtam RAM)- when the RAM exhauts some of the idle (not active) applications are stored in hard disk, SSD for temporary workspace to avid crashing of CPU 
+and then when required it swaps back on click of that application 
+
+When laptop closes as well how is the data restored when opened 
+  - sleep mode- a part of the battery keeps supplying to make the RAM active so that all the volatile memory is stored only 
+  - Hibernate mode - when laptop power is done then all the volatile memory is stored in the ROM as a large file so that when power is supplied back   that file is again restored from ROM
+
+why RAM required when ROM is there - ROM is very slow when multiple applications are stored as it is used only for read opr whereas RAM is built for this it can 
+
+---------------------------------------------------------------------------------------------------------
+Process Management 
+
+Core of OS it is how it handles multiple applications and program run on computer 
+A process is a simple program which is currently executed isolated memory blocks
+Thread is apart of the process a unit of it 
+Multitasking - switching betweeen diff process
+
+
+Ina  chrome browser - a tab is  a process
+                    - a scrolling , clicking event is a thread 
+if only a process exist - the apllication becomes too slow as there will too many process and for each feature a process needs to switched takes a long of time 
+
+if only threads exist -  entire process  a  singlr thread exist then single glitch can instanlty stop all other applications 
+
+
+Thrashing 
+when VRAM also exhauts for continuos back and forth of the application from VRAM to RAM then the RAm needs to make space for that so the RAM again creates space by puttting other application on VRAM this causes entire computer crashing 
+
+
+---------------------------------------------------------------------------------------------------------
+A program is just a file stored on disk.It is passive 
+A process is a program that is currently running.It is active 
+Now the OS creates: Process ID (PID), memory,stack,heap
+Eg: when u run python hello.py 
+States of process 
+    New(created)-Ready(waiting for CPU)-running(executions)-waiting(I/O)-running-terminated
+
+One process can have multiple threads - they share memory,heap,variable 
+[each thread has its own stack,registers, program counters] 
+
+why need threads
+suppose backend users 100 user request then instead of 1 req-> finish -> 2nd req we have req1,req2 parallel running
+
+
+---------------------------------------------------------------------------------------------------------
+
+Multitasking 
+
+In modersn OS there are diff applicationsrunning -spotify,VS code, Browser 
+CPU switches between them extremely fast.
+
+This creates the illusion that everything runs simultaneously.
+
+
+Deadlock
+
+A deadlock occurs when two or more threads/processes wait on each other forever.
+thread A - DB lock - waiting file lock , Thread B - File lock - waiting DB lock 
+Both wait forevere
+
+Soln - Always acquire locks in the same order.
+
+---------------------------------------------------------------------------------------------------------
+Context Switching
+
+now chrome is running spotify needs CPU then OS saves memory,registers,Program counters then loads spotify info . Too much of this reduces performance
+
+---------------------------------------------------------------------------------------------------------
+CPU Scheduling  -
+
+Many processes want CPU.Scheduler decides who runs next.
+Algorithms - Fisrt Come First Serve 
+            - Round Robin - each prcess has fixed time 
+            -Priority Scheduling - high priority gets CPU
+
+Paging
+instead of using one huge block as memory OS divides memory into page. Physical memory is divided into Frame . Pages map to frames.
+
+---------------------------------------------------------------------------------------------------------
+Memory Management 
+RAM is limited so OS decides
+which process gets  Memory , when is memory freeded, when is memory allocated
+
+Stack and Heap 
+
+Stack stores - function calls,variables 
+Heap - large objects, lists, dictionaries 
+
+Mutex vs Semaphore
+One thread-> critical section 
+Semaphore 5 threads-> database pool
+
+Syncronization
+Used when multiple threads access shared resources.
+
+System Calls
+applications they cannot access OS directly .They ask the OS using system calls.
+open(), read(), write(), fork(),exec(), socket()
+
+Fork()
+It creates a child process [parent-> fork() => parent -> child 
+
+IPC (Inter Process Communication)
+Process do not share memory . Communication methods-pipes,shared memory, message ques,sockets
+
+
+---------------------------------------------------------------------------------------------------------
+Producer-Consumer Problem
+
+Restaurent - chef cooks fast -> table full else use eats fast -> table empty
+The OS must synchronize them.
+whem the image is being uploaded -> queue -> image processor-> cloud storage 
+Producer- upload API 
+consumer - image processor workers
+
+If uploads become too fast,Queue becomes full.
+If uploads stop,Workers remain idle.
+
+Backend used in - AWS SQS, Apache Kafka, Redis Streams
+
+Race condition 
+
+
+suppose only 1 iphone is left 2 users buy in DB = stock-1 ,thread A -> Read Stock=1, thread B =Read Stock=1 now both decrease stock stock=-1
+Soln- aquire-read-update-release
+
+Only one thread updates at a time.
+
+
